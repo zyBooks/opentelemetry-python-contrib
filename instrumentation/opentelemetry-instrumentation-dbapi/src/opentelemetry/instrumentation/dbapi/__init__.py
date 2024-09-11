@@ -391,11 +391,25 @@ class CursorTracer:
         if self._db_api_integration.capture_parameters and len(args) > 1:
             span.set_attribute("db.statement.parameters", str(args[1]))
 
-    def get_operation_name(self, cursor, args):  # pylint: disable=no-self-use
+    def get_span_name(self, cursor, args):
+        operation_name = self.get_operation_name(cursor, args)
+        collection_name = self.get_collection_name(cursor, args)
+        return " ".join(name for name in (operation_name, collection_name) if name)
+
+    def get_operation_name(self, cursor, args):
         if args and isinstance(args[0], str):
             # Strip leading comments so we get the operation name.
             return self._leading_comment_remover.sub("", args[0]).split()[0]
         return ""
+
+    def get_collection_name(self, cursor, args):
+        collection_name = ""
+        if args and isinstance(args[0], str):
+            match = re.search(r"\b(?:FROM|JOIN|INTO|UPDATE|TABLE)\s+([\w`']+)", args[0])
+            if match:
+                collection_name = match.group(1).strip('`\'')
+
+        return collection_name
 
     def get_statement(self, cursor, args):  # pylint: disable=no-self-use
         if not args:
@@ -412,7 +426,7 @@ class CursorTracer:
         *args: typing.Tuple[typing.Any, typing.Any],
         **kwargs: typing.Dict[typing.Any, typing.Any],
     ):
-        name = self.get_operation_name(cursor, args)
+        name = self.get_span_name(cursor, args)
         if not name:
             name = (
                 self._db_api_integration.database
