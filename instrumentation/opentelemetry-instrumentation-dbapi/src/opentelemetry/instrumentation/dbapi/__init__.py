@@ -414,7 +414,7 @@ class CursorTracer:
     @staticmethod
     def get_collection_name(statement):
         collection_name = ""
-        match = re.search(r"\b(?:FROM|JOIN|INTO|UPDATE|TABLE)\s+([\w`']+)", statement)
+        match = re.search(r"\b(?:FROM|JOIN|INTO|UPDATE|TABLE)\s+(['`]?(\w+)['`]?(?:\s*\.\s*['`]?(\w+)['`]?)?)", statement)
         if match:
             collection_name = match.group(1).strip('`\'')
 
